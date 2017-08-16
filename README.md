@@ -1,17 +1,18 @@
 # eb-deploy
 Deploy websites to Elastic Beanstalk from the command line.
-Forked from original to allow the packaging and deployment to be broken up into separate steps. This allows continuous integration to add environent specific files to the deployment package that are not available or desired to be placed in source control.
+
+Forked version of https://github.com/tomhallam/eb-deploy `eb-deploy` will deploy the project in the current working directory to Elastic Beanstalk. 
+
+This version breaks the deploy steps into 2
+  * creating package
+  * deploying package
+
 
 ## Installation
 
     npm install -g @mosthix/eb-deploy
 
 ## Usage
-Forked version of https://github.com/tomhallam/eb-deploy `eb-deploy` will deploy the project in the current working directory to Elastic Beanstalk. 
-
-This version breaks the deploy steps into 2
-  * creating package
-  * deploying package
 
 This tool is exposed as a command line program. See the information below for an explanation:
 
