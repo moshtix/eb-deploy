@@ -1,62 +1,45 @@
-'use strict';
+import gitRev from 'git-rev';
+import childProcess from 'child_process';
+import path from 'path';
+import logger from './logger';
 
-const fs = require('fs');
-const Q = require('q');
-const gitRev = require('git-rev');
-const exec = require('child_process').exec;
-const path = require('path');
-
-function makeVersionsFolder() {
-  let deferred = Q.defer();
-
-  fs.lstat(path.join(process.cwd(), '.versions'), function(err, stats) {
-      if (!err && stats.isDirectory()) {
-          return deferred.resolve();
-      }
-      else {
-        fs.mkdir(path.join(process.cwd(), '.versions'), function(err) {
-          if(err) {
-            return deferred.reject(err);
-          }
-          return deferred.resolve();
-        });
-      }
+const getGitTag = () => new Promise((resolve) => {
+  gitRev.tag((tagStr) => {
+    resolve(tagStr);
   });
+});
 
-  return deferred.promise;
+const createArchive = (branch, version, type) => {
+  const exec = childProcess.exec;
 
-}
+  return new Promise((resolve, reject) => {
+    logger.logDebug({ message: `Creating project archive @ from branch ${branch} ${path.join(process.cwd(), `release.${version}.zip`)}` });
 
-function getGitTag() {
+    exec('rm release.zip', (err) => {
+      if (err) {
+        logger.logDebug({ message: err });
+      } else {
+        logger.logDebug({ message: 'removed existing zip file' });
+      }
+    });
 
-  let deferred = Q.defer();
-
-  gitRev.tag(function(tagStr) {
-    deferred.resolve(tagStr);
-  });
-
-  return deferred.promise;
-
-}
-
-function createArchive(branch, version) {
-
-  let deferred = Q.defer();
-  console.log('Creating project archive @ %s from branch %s', path.join(process.cwd(), 'release.' + version + '.zip'), branch);
-
-  const child = exec('git archive -o ' + path.join(process.cwd(), 'release.' + version + '.zip') + ' ' + branch, function(err, stdout, stderr) {
-    if (err) {
-      console.log(err);
-      return deferred.reject(err);
+    if (type === 'git') {
+      const fileName = `${path.join(process.cwd(), 'release.zip')}`;
+      exec(`git archive -o ${fileName} ${branch}`, (err) => {
+        if (err) {
+          logger.logDebug({ message: err });
+          reject(err);
+        }
+        logger.logDebug({ message: `Zip created${fileName}` });
+        resolve();
+      });
     }
-    console.log('Zip created');
-    return deferred.resolve();
   });
-
-  return deferred.promise;
-
 };
 
-exports.getGitTag = getGitTag;
-exports.createArchive = createArchive;
-exports.makeVersionsFolder = makeVersionsFolder;
+const root = {
+  getGitTag,
+  createArchive,
+};
+
+export default root;

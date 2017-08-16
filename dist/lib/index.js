@@ -1,89 +1,69 @@
 'use strict';
 
-var ebArgs = require('commander');
-var ElasticBeanstalk = require('elastic-beanstalk.js');
+var _helperLogger = require('@moshtix/helper-logger');
 
-var utils = require('./utils');
+var _helperLogger2 = _interopRequireDefault(_helperLogger);
 
-var ebDeploy = require('root-require')('./package.json');
-var version = ebDeploy.version;
+var _commander = require('commander');
 
-var path = require('path');
+var _commander2 = _interopRequireDefault(_commander);
 
-// Set up command line args
-ebArgs.version(version).option('-a, --accessKeyId <key>', 'Set AWS Access Key').option('-s, --secretAccessKey <key>', 'Set AWS Secret Access Key').option('-r, --region <region>', 'Set AWS Region [eu-west-1]', 'eu-west-1').option('-A, --applicationName <name>', 'The name of your Elastic Beanstalk Application').option('-e, --environment <name>', 'Which environment should this application be deployed to?').option('-b, --bucketName <name>', 'The name of the *existing* S3 bucket to store your version').option('-B, --branch <name>', 'The branch that should be used to generate the archive [master]', 'master').option('-V, --packageVersionOrigin <version>', 'Whether to use the version from package.json, or git tag [package.json]', 'package.json').parse(process.argv);
+var _bundle = require('./bundle');
 
-// Check arguments
-// Back out if we've not set the required keys
-if (!ebArgs.accessKeyId) {
-  console.error('AWS Access Key must be set!');
+var _bundle2 = _interopRequireDefault(_bundle);
+
+var _deploy = require('./deploy');
+
+var _deploy2 = _interopRequireDefault(_deploy);
+
+var _package = require('../../package.json');
+
+var _package2 = _interopRequireDefault(_package);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+_commander2.default.version(_package2.default.version).option('-a, --accessKeyId <key>', 'Set AWS Access Key').option('-s, --secretAccessKey <key>', 'Set AWS Secret Access Key').option('-r, --region <region>', 'Set AWS Region [eu-west-1]', 'eu-west-1').option('-A, --applicationName <name>', 'The name of your Elastic Beanstalk Application').option('-e, --environment <name>', 'Which environment should this application be deployed to?').option('-b, --bucketName <name>', 'The name of the *existing* S3 bucket to store your version').option('-B, --branch <name>', 'The branch that should be used to generate the archive [master]', 'master').option('-m, --mode <mode>', 'package, deploy or all [all]', 'all').parse(process.argv);
+
+if (!_commander2.default.accessKeyId) {
+  _helperLogger2.default.logDebug({ message: 'AWS Access Key must be set!' });
   process.exit(1);
 }
 
-if (!ebArgs.secretAccessKey) {
-  console.error('AWS Secret Access Key must be set!');
+if (!_commander2.default.secretAccessKey) {
+  _helperLogger2.default.logDebug({ message: 'AWS Secret Access Key must be set!' });
   process.exit(1);
 }
 
-if (!ebArgs.applicationName) {
-  console.error('Application name must be set!');
+if (!_commander2.default.applicationName) {
+  _helperLogger2.default.logDebug({ message: 'Application name must be set!' });
   process.exit(1);
 }
 
-if (!ebArgs.environment) {
-  console.error('EB Environment must be set!');
+if (!_commander2.default.environment) {
+  _helperLogger2.default.logDebug({ message: 'EB Environment must be set!' });
   process.exit(1);
 }
 
-if (!ebArgs.bucketName) {
-  console.error('EB Bucket Name must be set!');
+if (!_commander2.default.bucketName) {
+  _helperLogger2.default.logDebug({ message: 'EB Bucket Name must be set!' });
   process.exit(1);
 }
 
-// All projects require a package.json
-try {
-  console.log('Attempting to load package.json: %s', path.join(process.cwd(), 'package.json'));
-  var packageInfo = require(path.join(process.cwd(), 'package.json'));
-} catch (e) {
-  console.error('No package.json found, exiting');
-  console.error(e);
-  process.exit(1);
-}
-
-var project = {
-  name: ebArgs.applicationName || packageInfo.name || 'my-app'
-};
-
-// Create the Elastic Beanstalk client
-var elasticBeanstalk = new ElasticBeanstalk({
-  aws: {
-    accessKeyId: ebArgs.accessKeyId,
-    secretAccessKey: ebArgs.secretAccessKey,
-    region: ebArgs.region || 'eu-west-1',
-    applicationName: ebArgs.applicationName || 'my-app',
-    versionsBucket: ebArgs.bucketName || 'mubaloo-ecs-config'
-  }
+var bundlePromise = new Promise(function (resolve) {
+  resolve();
 });
+var packagePromise = new Promise(function (resolve) {
+  resolve();
+});
+if (_commander2.default.mode === 'package' || _commander2.default.mode === 'all') {
+  bundlePromise = _bundle2.default.run({ args: _commander2.default });
+}
+if (_commander2.default.mode === 'deploy' || _commander2.default.mode === 'all') {
+  packagePromise = _deploy2.default.run({ args: _commander2.default });
+}
 
-// Create the archive
-utils.makeVersionsFolder().then(function () {
-  return utils.getGitTag();
-}).then(function (tag) {
-  project.version = ebArgs.packageVersionOrigin == 'package.json' ? packageInfo.version : tag;
-  console.log('Project version @' + project.version);
-  return utils.createArchive(ebArgs.branch, project.version);
-}).then(function () {
-  console.log('Attempting upload ...');
-  return elasticBeanstalk.createVersionAndDeploy({
-    environment: ebArgs.environment,
-    filename: path.join(process.cwd(), 'release.' + project.version + '.zip'),
-    remoteFilename: project.name + '_' + project.version + '.zip',
-    versionLabel: project.version
+bundlePromise.then(function () {
+  packagePromise.then(function () {
+    _helperLogger2.default.logDebug({ message: 'Complete' });
   });
-}).then(function () {
-  console.log('Successfully deployed ' + project.name + ' (' + project.version + ') to EB');
-}).fail(function (error) {
-  console.error(error);
-  process.exit(1);
 });
-//# sourceMappingURL=index.js.map
