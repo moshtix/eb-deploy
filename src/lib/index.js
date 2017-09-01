@@ -1,16 +1,11 @@
-const ebArgs = require('commander');
-const ElasticBeanstalk = require('elastic-beanstalk.js');
+import logger from '@moshtix/helper-logger';
+import ebArgs from 'commander';
+import bundle from './bundle';
+import deploy from './deploy';
+import jsonPackage from '../../package.json';
 
-const utils = require('./utils');
-
-const ebDeploy = require('root-require')('./package.json');
-const version = ebDeploy.version;
-
-const path = require('path');
-
-// Set up command line args
 ebArgs
-  .version(version)
+  .version(jsonPackage.version)
   .option('-a, --accessKeyId <key>', 'Set AWS Access Key')
   .option('-s, --secretAccessKey <key>', 'Set AWS Secret Access Key')
   .option('-r, --region <region>', 'Set AWS Region [eu-west-1]', 'eu-west-1')
@@ -18,85 +13,45 @@ ebArgs
   .option('-e, --environment <name>', 'Which environment should this application be deployed to?')
   .option('-b, --bucketName <name>', 'The name of the *existing* S3 bucket to store your version')
   .option('-B, --branch <name>', 'The branch that should be used to generate the archive [master]', 'master')
-  .option('-V, --packageVersionOrigin <version>', 'Whether to use the version from package.json, or git tag [package.json]', 'package.json')
+  .option('-m, --mode <mode>', 'package, deploy or all [all]', 'all')
   .parse(process.argv);
 
-// Check arguments
-// Back out if we've not set the required keys
-if(!ebArgs.accessKeyId) {
-  console.error('AWS Access Key must be set!');
+if (!ebArgs.accessKeyId) {
+  logger.logDebug({ message: 'AWS Access Key must be set!' });
   process.exit(1);
 }
 
-if(!ebArgs.secretAccessKey) {
-  console.error('AWS Secret Access Key must be set!');
+if (!ebArgs.secretAccessKey) {
+  logger.logDebug({ message: 'AWS Secret Access Key must be set!' });
   process.exit(1);
 }
 
-if(!ebArgs.applicationName) {
-  console.error('Application name must be set!');
+if (!ebArgs.applicationName) {
+  logger.logDebug({ message: 'Application name must be set!' });
   process.exit(1);
 }
 
-if(!ebArgs.environment) {
-  console.error('EB Environment must be set!');
+if (!ebArgs.environment) {
+  logger.logDebug({ message: 'EB Environment must be set!' });
   process.exit(1);
 }
 
-if(!ebArgs.bucketName) {
-  console.error('EB Bucket Name must be set!');
+if (!ebArgs.bucketName) {
+  logger.logDebug({ message: 'EB Bucket Name must be set!' });
   process.exit(1);
 }
 
-// All projects require a package.json
-try {
-  console.log('Attempting to load package.json: %s', path.join(process.cwd(), 'package.json'));
-  var packageInfo = require(path.join(process.cwd(), 'package.json'));
+let bundlePromise = new Promise((resolve) => { resolve(); });
+let packagePromise = new Promise((resolve) => { resolve(); });
+if (ebArgs.mode === 'package' || ebArgs.mode === 'all') {
+  bundlePromise = bundle.run({ args: ebArgs });
 }
-catch(e) {
-  console.error('No package.json found, exiting');
-  console.error(e);
-  process.exit(1);
+if (ebArgs.mode === 'deploy' || ebArgs.mode === 'all') {
+  packagePromise = deploy.run({ args: ebArgs });
 }
 
-const project = {
-  name: (ebArgs.applicationName || packageInfo.name || 'my-app')
-};
-
-// Create the Elastic Beanstalk client
-const elasticBeanstalk = new ElasticBeanstalk({
-  aws: {
-    accessKeyId: ebArgs.accessKeyId,
-    secretAccessKey: ebArgs.secretAccessKey,
-    region: ebArgs.region || 'eu-west-1',
-    applicationName: ebArgs.applicationName || 'my-app',
-    versionsBucket: ebArgs.bucketName || 'mubaloo-ecs-config'
-  }
-});
-
-// Create the archive
-utils.makeVersionsFolder()
-  .then(() => {
-    return utils.getGitTag()
-  })
-  .then((tag) => {
-    project.version = (ebArgs.packageVersionOrigin == 'package.json' ? packageInfo.version : tag);
-    console.log('Project version @' + project.version);
-    return utils.createArchive(ebArgs.branch, project.version);
-  })
-  .then(() => {
-    console.log('Attempting upload ...');
-    return elasticBeanstalk.createVersionAndDeploy({
-      environment: ebArgs.environment,
-      filename: path.join(process.cwd(), 'release.' + project.version + '.zip'),
-      remoteFilename: project.name + '_' + project.version + '.zip',
-      versionLabel: project.version
-    });
-  })
-  .then(() => {
-    console.log('Successfully deployed ' + project.name + ' (' + project.version + ') to EB');
-  })
-  .fail((error) => {
-    console.error(error);
-    process.exit(1);
+bundlePromise.then(() => {
+  packagePromise.then(() => {
+    logger.logDebug({ message: 'Complete' });
   });
+});
