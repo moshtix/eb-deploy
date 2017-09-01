@@ -12,24 +12,13 @@ var _elasticBeanstalk = require('elastic-beanstalk.js');
 
 var _elasticBeanstalk2 = _interopRequireDefault(_elasticBeanstalk);
 
-var _helperLogger = require('@moshtix/helper-logger');
-
-var _helperLogger2 = _interopRequireDefault(_helperLogger);
-
 var _utils = require('./utils');
 
 var _utils2 = _interopRequireDefault(_utils);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var run = function run(params) {
-  var args = params.args;
-
-
-  var project = {
-    name: args.applicationName || process.env.npm_package_name || 'my-app'
-  };
-
+var run = function run() {
   return new Promise(function (resolve, reject) {
     var elasticBeanstalk = new _elasticBeanstalk2.default({
       aws: {
@@ -43,7 +32,6 @@ var run = function run(params) {
 
     var zipFile = 'release.zip';
 
-    _helperLogger2.default.logDebug({ message: 'Uploading file ' + zipFile });
     _utils2.default.getGitTag().then(function (tag) {
       elasticBeanstalk.createVersionAndDeploy({
         environment: _commander2.default.environment,
@@ -51,10 +39,8 @@ var run = function run(params) {
         remoteFilename: zipFile,
         versionLabel: tag
       }).then(function () {
-        _helperLogger2.default.logDebug({ message: 'Successfully deployed ' + project.name + ' (' + project.version + ') to EB' });
         resolve();
       }).fail(function (error) {
-        _helperLogger2.default.logDebug({ message: JSON.stringify(error) });
         reject(error);
         process.exit(1);
       });

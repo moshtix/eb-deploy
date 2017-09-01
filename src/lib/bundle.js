@@ -1,4 +1,4 @@
-import logger from '@moshtix/helper-logger';
+import logger from './logger';
 import utils from './utils';
 import jsonPackage from '../../package.json';
 

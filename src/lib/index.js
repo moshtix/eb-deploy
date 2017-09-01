@@ -1,5 +1,5 @@
-import logger from '@moshtix/helper-logger';
 import ebArgs from 'commander';
+import logger from './logger';
 import bundle from './bundle';
 import deploy from './deploy';
 import jsonPackage from '../../package.json';

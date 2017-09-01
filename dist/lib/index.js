@@ -1,12 +1,12 @@
 'use strict';
 
-var _helperLogger = require('@moshtix/helper-logger');
-
-var _helperLogger2 = _interopRequireDefault(_helperLogger);
-
 var _commander = require('commander');
 
 var _commander2 = _interopRequireDefault(_commander);
+
+var _logger = require('./logger');
+
+var _logger2 = _interopRequireDefault(_logger);
 
 var _bundle = require('./bundle');
 
@@ -25,27 +25,27 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 _commander2.default.version(_package2.default.version).option('-a, --accessKeyId <key>', 'Set AWS Access Key').option('-s, --secretAccessKey <key>', 'Set AWS Secret Access Key').option('-r, --region <region>', 'Set AWS Region [eu-west-1]', 'eu-west-1').option('-A, --applicationName <name>', 'The name of your Elastic Beanstalk Application').option('-e, --environment <name>', 'Which environment should this application be deployed to?').option('-b, --bucketName <name>', 'The name of the *existing* S3 bucket to store your version').option('-B, --branch <name>', 'The branch that should be used to generate the archive [master]', 'master').option('-m, --mode <mode>', 'package, deploy or all [all]', 'all').parse(process.argv);
 
 if (!_commander2.default.accessKeyId) {
-  _helperLogger2.default.logDebug({ message: 'AWS Access Key must be set!' });
+  _logger2.default.logDebug({ message: 'AWS Access Key must be set!' });
   process.exit(1);
 }
 
 if (!_commander2.default.secretAccessKey) {
-  _helperLogger2.default.logDebug({ message: 'AWS Secret Access Key must be set!' });
+  _logger2.default.logDebug({ message: 'AWS Secret Access Key must be set!' });
   process.exit(1);
 }
 
 if (!_commander2.default.applicationName) {
-  _helperLogger2.default.logDebug({ message: 'Application name must be set!' });
+  _logger2.default.logDebug({ message: 'Application name must be set!' });
   process.exit(1);
 }
 
 if (!_commander2.default.environment) {
-  _helperLogger2.default.logDebug({ message: 'EB Environment must be set!' });
+  _logger2.default.logDebug({ message: 'EB Environment must be set!' });
   process.exit(1);
 }
 
 if (!_commander2.default.bucketName) {
-  _helperLogger2.default.logDebug({ message: 'EB Bucket Name must be set!' });
+  _logger2.default.logDebug({ message: 'EB Bucket Name must be set!' });
   process.exit(1);
 }
 
@@ -64,6 +64,6 @@ if (_commander2.default.mode === 'deploy' || _commander2.default.mode === 'all')
 
 bundlePromise.then(function () {
   packagePromise.then(function () {
-    _helperLogger2.default.logDebug({ message: 'Complete' });
+    _logger2.default.logDebug({ message: 'Complete' });
   });
 });
